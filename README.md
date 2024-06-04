@@ -277,8 +277,126 @@ public function getWeather($city)
         ]
     ]);
 
+## Section 6: Admin Dashboard, Middleware, and Admin Users
+**Points: 40**
 
+**Task:** Implement an admin dashboard in Laravel that includes middleware to restrict access to admin users, manage admin users, display charts using Chart.js for brewers and user URLs, and receive live data via webhooks.
 
+### Points Breakdown:
+- **Creating Middleware (10 points)**
+- **Creating Admin User Management (10 points)**
+- **Implementing Admin Dashboard and Charts (15 points)**
+- **Implementing Webhook to Receive Live Data (5 points)**
+
+### Steps:
+
+1. **Create Middleware:**
+   ```php
+   php artisan make:middleware AdminMiddleware
+   ```
+
+   **AdminMiddleware:**
+   ```php
+   namespace App\Http\Middleware;
+
+   use Closure;
+   use Illuminate\Support\Facades\Auth;
+
+   class AdminMiddleware
+   {
+       public function handle($request, Closure $next)
+       {
+           if (Auth::check() && Auth::user()->is_admin) {
+               return $next($request);
+           }
+           return redirect('/');
+       }
+   }
+   ```
+
+2. **Register Middleware:**
+   ```php
+   // In app/Http/Kernel.php
+   protected $routeMiddleware = [
+       // ...
+       'admin' => \App\Http\Middleware\AdminMiddleware::class,
+   ];
+   ```
+
+3. **Create Admin User Management:**
+   ```php
+   php artisan make:model Admin -m
+   ```
+
+   **Admin Model Migration:**
+   ```php
+   public function up()
+   {
+       Schema::create('admins', function (Blueprint $table) {
+           $table->id();
+           $table->string('name');
+           $table->string('email')->unique();
+           $table->timestamp('email_verified_at')->nullable();
+           $table->string('password');
+           $table->boolean('is_admin')->default(true);
+           $table->rememberToken();
+           $table->timestamps();
+       });
+   }
+   ```
+
+4. **Create Admin Dashboard Controller:**
+   ```php
+   php artisan make:controller AdminDashboardController
+   ```
+
+   **AdminDashboardController:**
+   ```php
+   namespace App\Http\Controllers;
+
+   use Illuminate\Http\Request;
+   use App\Models\ActivityLog;
+   use Illuminate\Support\Facades\DB;
+
+   class AdminDashboardController extends Controller
+   {
+       public function __construct()
+       {
+           $this->middleware('admin');
+       }
+
+       public function index()
+       {
+           // Fetch data for charts
+           $brewersData = DB::table('brewers')->select('name', DB::raw('count(*) as total'))->groupBy('name')->get();
+           $userUrlsData = DB::table('activity_logs')->select('activity', DB::raw('count(*) as total'))->groupBy('activity')->get();
+
+           return view('admin.dashboard', compact('brewersData', 'userUrlsData'));
+       }
+   }
+   ```
+
+5. **Create Admin Dashboard View (`admin/dashboard.blade.php`):**
+   ```html
+   <h1>Admin Dashboard</h1>
+
+   <h2>Brewers Chart</h2>
+   <canvas id="brewersChart"></canvas>
+
+   <h2>User URLs Chart</h2>
+   <canvas id="userUrlsChart"></canvas>
+
+   <script>
+       // JavaScript code to initialize and render charts using Chart.js
+   </script>
+   ```
+
+6. **Implement Webhook for Live Data:**
+   ```php
+   // Implement webhook logic here to receive live data
+   ```
+
+This section outlines the steps to implement the admin dashboard, middleware, admin user management, and integration of charts using Chart.js, along with the implementation of a webhook to receive live data.
 
 
 
